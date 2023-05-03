@@ -115,7 +115,7 @@ func (ki *KnownIDs) Code(id string, offset int64) (int, error) {
 	h.Write(d)
 	sum := h.Sum(nil)
 	i := sum[19] & 15
-	code := binary.BigEndian.Uint32(sum[i : i+4])
+	code := binary.BigEndian.Uint32(sum[i:i+4]) & ^(uint32(1) << 31)
 	return int(code % 1000000), nil
 }
 
