@@ -38,8 +38,9 @@ The webserver:
   application, you would not normally show the 16 character base32
   encoded secret like this. However, this secret or a copy of the QR
   code can be used to backup your OTP setup. The QR code and the
-  secret will remain constant for unless you restart the `main`
-  program. That is, they don't change if you refresh the page.
+  secret will remain constant until you restart the `main`
+  program. That is, the QR code doesn't change if you refresh the
+  page.
 
 - shows three OTP codes one for each of the 30 seconds prior to,
   including, and just after the current time. If you refresh the page,
@@ -49,9 +50,9 @@ The webserver:
   codes. Which code depends on the time skew between your computer at
   the time you rendered the page and the time on your phone. If it
   takes a while to set things up, you may need to refresh the page to
-  synchronize the codes.
+  view a recent enough code.
 
-- given the way this OTP mechanism works, you can set the same
+- given the way this OTP mechanism works, you can set up the same
   configuration on multiple phones and they will all generate the same
   OTP code sequences at the same times.
 
