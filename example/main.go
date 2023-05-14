@@ -8,11 +8,13 @@
 package main
 
 import (
+	"encoding/base64"
 	"flag"
 	"fmt"
 	"html/template"
 	"log"
 	"net/http"
+	"net/url"
 	"sync"
 	"time"
 
@@ -25,6 +27,7 @@ var (
 	addr   = flag.String("addr", "localhost:8080", "address to listen to for web request")
 	issuer = flag.String("issuer", "myOTP", "name of the key issuer")
 	id     = flag.String("id", "nobody@localhost", "id of key owner")
+	uri    = flag.Bool("uri", false, "inline the image using a data URI")
 )
 
 var index = template.Must(template.New("index").Parse(`<!DOCTYPE html>
@@ -35,7 +38,7 @@ var index = template.Must(template.New("index").Parse(`<!DOCTYPE html>
   <body>
     <table>
       <tr>
-        <td><img src="qr.png"/></td>
+        <td><img src="{{.Image}}"></td>
         <td>
           <ul>
             <li>Issuer: {{.Issuer}}</li>
@@ -54,6 +57,7 @@ var index = template.Must(template.New("index").Parse(`<!DOCTYPE html>
 type Handle struct {
 	ID, Issuer, Secret string
 	Last, This, Next   string
+	Image              template.URL
 	ki                 *otp.KnownIDs
 	just               sync.Once
 	img                []byte
@@ -64,18 +68,7 @@ func codeString(code int) string {
 	return fmt.Sprint(x[:3], " ", x[3:])
 }
 
-func (h *Handle) dumpTemplate(w http.ResponseWriter) {
-	now := time.Now().Unix() / 30
-	last, _ := h.ki.Code(h.ID, now-1)
-	h.Last = codeString(last)
-	this, _ := h.ki.Code(h.ID, now)
-	h.This = codeString(this)
-	next, _ := h.ki.Code(h.ID, now+1)
-	h.Next = codeString(next)
-	index.Execute(w, h)
-}
-
-func (h *Handle) dumpQRCode(w http.ResponseWriter) {
+func (h *Handle) genQRCode() {
 	h.just.Do(func() {
 		uri, err := h.ki.TimeURI(h.ID)
 		if err != nil {
@@ -86,8 +79,33 @@ func (h *Handle) dumpQRCode(w http.ResponseWriter) {
 			log.Fatalf("failed to render QR code: %v", err)
 		}
 	})
+}
+
+func (h *Handle) dumpQRCode(w http.ResponseWriter) {
+	h.genQRCode()
 	w.Header().Set("Content-Type", http.DetectContentType(h.img))
 	w.Write(h.img)
+}
+
+func (h *Handle) dumpDataURI() string {
+	h.genQRCode()
+	return fmt.Sprintf("data:image/png;base64,%s", url.PathEscape(base64.StdEncoding.EncodeToString(h.img)))
+}
+
+func (h *Handle) dumpTemplate(w http.ResponseWriter) {
+	now := time.Now().Unix() / 30
+	last, _ := h.ki.Code(h.ID, now-1)
+	h.Last = codeString(last)
+	this, _ := h.ki.Code(h.ID, now)
+	h.This = codeString(this)
+	next, _ := h.ki.Code(h.ID, now+1)
+	h.Next = codeString(next)
+	if *uri {
+		h.Image = template.URL(h.dumpDataURI())
+	} else {
+		h.Image = template.URL("qr.png")
+	}
+	index.Execute(w, h)
 }
 
 func (h *Handle) handler(w http.ResponseWriter, r *http.Request) {

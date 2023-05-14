@@ -56,6 +56,11 @@ The webserver:
   configuration on multiple phones and they will all generate the same
   OTP code sequences at the same times.
 
+- the `--uri` command line flag for this example program inlines the
+  QR code using a `data:image/png;base64,...` URI for the image data.
+  Without that flag, the image is generated as a separately loaded
+  `qr.png` fetch.
+
 ## License info
 
 The `otp` package is distributed with the same BSD 3-clause license
