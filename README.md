@@ -18,6 +18,8 @@ package.
 
 To try this example:
 ```
+$ git clone https://github.com/tinkerator/otp.git
+$ cd otp
 $ go mod tidy
 $ go build example/main.go
 $ ./main
